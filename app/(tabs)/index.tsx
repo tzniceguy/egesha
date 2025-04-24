@@ -1,15 +1,21 @@
-import { Text, View } from "react-native";
+import MapComponent from "@/components/map-component";
+import SearchModal from "@/components/search-component";
+import { Gesture, GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet, View } from "react-native";
 
-export default function Page() {
+const Page = () => {
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
+    <GestureHandlerRootView style={styles.container}>
+      <MapComponent />
+      <SearchModal />
+    </GestureHandlerRootView>
   );
-}
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
+
+export default Page;
