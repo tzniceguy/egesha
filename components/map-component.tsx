@@ -6,7 +6,7 @@ import React, {
   forwardRef,
 } from "react";
 import MapView, { Marker, Region } from "react-native-maps";
-import { StyleSheet, View, Alert } from "react-native";
+import { StyleSheet, View, Alert, Keyboard } from "react-native";
 import * as Location from "expo-location";
 
 // Define types (can be shared or defined in Page)
@@ -96,21 +96,24 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       setCurrentRegion(newRegion);
       // console.log("Map Region Changed (User):", newRegion); // For debugging
     };
+    //function to dismiss the Keyboard
+    const handleMapPress = () => {
+      Keyboard.dismiss();
+    };
 
     return (
       <View style={styles.container}>
         <MapView
           ref={mapRef}
           style={styles.map}
-          // Use region prop to control map view programmatically if needed,
-          // or rely on initialRegion and animateToRegion
-          initialRegion={initialRegion} // Set initial view
-          region={currentRegion} // Reflects user interaction if handleRegionChangeComplete updates it
-          onRegionChangeComplete={handleRegionChangeComplete} // Use Complete to avoid excessive updates
+          initialRegion={initialRegion}
+          region={currentRegion}
+          onRegionChangeComplete={handleRegionChangeComplete}
           showsUserLocation={true}
-          showsMyLocationButton={true} // Consider positioning relative to SearchModal
+          showsMyLocationButton={true}
           zoomEnabled={true}
           rotateEnabled={true}
+          onPress={handleMapPress}
         >
           {userLocation && (
             <Marker
@@ -125,7 +128,6 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
   },
 );
 
-// --- Styles remain the same ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,

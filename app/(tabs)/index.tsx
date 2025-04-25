@@ -60,14 +60,12 @@ const Page = () => {
           longitude: userLocation.longitude,
           ...(expanded ? ZOOMED_IN_DELTA : ZOOMED_OUT_DELTA),
         };
-        console.log("Animating map to region:", targetRegion); // Debug log
         mapRef.current.animateToRegion(targetRegion, 600); // Animate over 600ms
       } else if (!userLocation) {
-        console.log("Cannot animate map: User location unknown.");
         // Optionally show a message or handle this case
       }
     },
-    [userLocation], // Dependency: Re-create this callback if userLocation changes
+    [userLocation],
   );
 
   return (

@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   Dimensions,
+  Keyboard,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -32,7 +33,7 @@ type Region = {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const COLLAPSED_HEIGHT = 200;
-const EXPANDED_HEIGHT = 350;
+const EXPANDED_HEIGHT = 400;
 
 const SearchModal = ({ onStateChange }: SearchModalProps) => {
   const height = useSharedValue(COLLAPSED_HEIGHT);
