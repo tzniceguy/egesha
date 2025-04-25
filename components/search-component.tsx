@@ -1,3 +1,4 @@
+import React, { useEffect } from "react";
 import colors from "@/lib/styles/colors";
 import { Calendar, Search } from "lucide-react-native";
 import {
@@ -8,39 +9,55 @@ import {
   TouchableOpacity,
   Dimensions,
 } from "react-native";
-import { useEffect } from "react";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  runOnJS,
 } from "react-native-reanimated";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
 
 interface SearchModalProps {
-  onHeightChange?: (height: number) => void;
+  // Replace onHeightChange with onStateChange
+  onStateChange?: (isExpanded: boolean) => void;
 }
+
+// Define map region type (can be shared or defined in Page)
+type Region = {
+  latitude: number;
+  longitude: number;
+  latitudeDelta: number;
+  longitudeDelta: number;
+};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const COLLAPSED_HEIGHT = 200;
 const EXPANDED_HEIGHT = 350;
 
-const SearchModal = ({ onHeightChange }: SearchModalProps) => {
+const SearchModal = ({ onStateChange }: SearchModalProps) => {
   const height = useSharedValue(COLLAPSED_HEIGHT);
   const isExpanded = useSharedValue(false);
 
-  const panGesture = Gesture.Tap().onEnd(() => {
-    isExpanded.value = !isExpanded.value;
-    height.value = withTiming(
-      isExpanded.value ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT,
-      { duration: 300 },
-    );
+  // Helper function to call the state change callback on the JS thread
+  const notifyStateChange = (expanded: boolean) => {
+    "worklet"; // Mark as a worklet if needed, but runOnJS handles the transition
+    if (onStateChange) {
+      runOnJS(onStateChange)(expanded);
+    }
+  };
+
+  const tapGesture = Gesture.Tap().onEnd(() => {
+    "worklet"; // Mark gesture callbacks as worklets
+    const nextState = !isExpanded.value;
+    isExpanded.value = nextState;
+    height.value = withTiming(nextState ? EXPANDED_HEIGHT : COLLAPSED_HEIGHT, {
+      duration: 300,
+    });
+    // Notify parent component about the state change
+    notifyStateChange(nextState);
   });
 
-  useEffect(() => {
-    if (onHeightChange) {
-      onHeightChange(height.value);
-    }
-  }, [height.value]);
+  // Removed useEffect related to onHeightChange
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -49,14 +66,12 @@ const SearchModal = ({ onHeightChange }: SearchModalProps) => {
   });
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={tapGesture}>
       <Animated.View style={[styles.modal, animatedStyle]}>
         <View style={styles.handleBarContainer}>
           <View style={styles.handleBar} />
         </View>
-
         <Text style={styles.title}>Find a parking</Text>
-
         <View style={styles.searchContainer}>
           <View style={styles.inputWrapper}>
             <Search size={20} color="#888" style={styles.searchIcon} />
@@ -72,6 +87,7 @@ const SearchModal = ({ onHeightChange }: SearchModalProps) => {
   );
 };
 
+// --- Styles remain the same ---
 const styles = StyleSheet.create({
   modal: {
     position: "absolute",
@@ -87,6 +103,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 5,
+    zIndex: 10, // Ensure modal is visually above map controls if needed
   },
   handleBarContainer: {
     alignItems: "center",
@@ -125,11 +142,13 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    paddingVertical: 15,
+    paddingVertical: 15, // Adjust padding as needed
+    fontSize: 16, // Ensure text is readable
   },
   button: {
     backgroundColor: "#D3D3D3",
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -137,7 +156,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   buttonText: {
-    color: "black",
+    color: colors.primary,
     fontWeight: "bold",
     fontSize: 16,
   },
