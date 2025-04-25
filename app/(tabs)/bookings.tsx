@@ -1,10 +1,27 @@
-import { Dimensions, Text, View, StyleSheet } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, StyleSheet, RefreshControl } from "react-native";
 import Header from "@/components/header";
-import { bookings } from "@/lib/mockups/bookings";
+import { bookings as mockBookings } from "@/lib/mockups/bookings";
 import BookingCard from "@/components/booking-card";
 import { FlashList } from "@shopify/flash-list";
+import { useRouter } from "expo-router";
 
 const Page = () => {
+  const router = useRouter();
+  const [bookings, setBookings] = useState(mockBookings);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+
+    // Simulate data refresh
+    setTimeout(() => {
+      // Here you can refetch from server or update bookings
+      setBookings([...mockBookings]); // example: reset to mock data
+      setRefreshing(false);
+    }, 1500);
+  }, []);
+
   return (
     <View style={styles.container}>
       <Header title="Bookings" />
@@ -13,14 +30,16 @@ const Page = () => {
           data={bookings}
           renderItem={({ item }) => (
             <BookingCard
-              title={item.title}
-              date={item.date}
-              price={item.price}
+              booking={item}
+              onPress={() => router.push(`/bookings/${item.id}`)}
             />
           )}
           estimatedItemSize={100}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
         />
       </View>
     </View>
