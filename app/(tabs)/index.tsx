@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback } from "react";
-import { StyleSheet } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { View, StyleSheet } from "react-native";
 import MapComponent, { MapComponentRef } from "@/components/map-component"; // Import ref type
 import SearchModal from "@/components/search-component";
 import { Region } from "react-native-maps"; // Import Region type
@@ -69,14 +68,14 @@ const Page = () => {
   );
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <View style={styles.container}>
       <MapComponent
         ref={mapRef}
         onLocationUpdate={handleLocationUpdate}
         initialRegion={INITIAL_MAP_REGION}
       />
       <SearchModal onStateChange={handleModalStateChange} />
-    </GestureHandlerRootView>
+    </View>
   );
 };
 
