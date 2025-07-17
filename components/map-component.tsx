@@ -4,102 +4,132 @@ import React, {
   useRef,
   useImperativeHandle,
   forwardRef,
+  useCallback,
 } from "react";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import { StyleSheet, View, Alert, Keyboard } from "react-native";
 import * as Location from "expo-location";
+import { ParkingLots } from "@/lib/types";
 
-// Define types (can be shared or defined in Page)
 type LocationType = {
   latitude: number;
   longitude: number;
 };
 
-// Props for MapComponent
 interface MapComponentProps {
   onLocationUpdate: (location: LocationType | null) => void;
-  initialRegion?: Region; // Make initialRegion optional or controlled from Page
+  onRegionChange?: (region: Region) => void;
+  initialRegion?: Region;
+  showUserLocationMarker?: boolean;
+  animateToUserLocation?: boolean;
+  parkingLots?: ParkingLots[];
 }
 
-// Define the type for the methods exposed via the ref
 export interface MapComponentRef {
   animateToRegion: (region: Region, duration?: number) => void;
+  getCurrentRegion: () => Region | undefined;
+  getUserLocation: () => LocationType | null;
 }
 
-// Default region if needed
-const DEFAULT_REGION = {
-  latitude: -6.8235, // Dar es Salaam latitude
-  longitude: 39.2695, // Dar es Salaam longitude
+const DEFAULT_REGION: Region = {
+  latitude: -6.8235,
+  longitude: 39.2695,
   latitudeDelta: 0.0922,
   longitudeDelta: 0.0421,
 };
 
 const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
-  ({ onLocationUpdate, initialRegion = DEFAULT_REGION }, ref) => {
+  (
+    {
+      onLocationUpdate,
+      onRegionChange,
+      initialRegion = DEFAULT_REGION,
+      showUserLocationMarker = true,
+      animateToUserLocation = false,
+      parkingLots = [],
+    },
+    ref,
+  ) => {
     const mapRef = useRef<MapView>(null);
-    // Keep userLocation internal for the marker placement
     const [userLocation, setUserLocation] = useState<LocationType | null>(null);
-    const [currentRegion, setCurrentRegion] = useState<Region>(initialRegion); // Manage current region for user interaction
+    const [currentRegion, setCurrentRegion] = useState<Region>(initialRegion);
+    const [isLocationLoading, setIsLocationLoading] = useState(false);
 
-    // Expose the animateToRegion method via the ref
     useImperativeHandle(ref, () => ({
       animateToRegion: (targetRegion: Region, duration: number = 1000) => {
         if (mapRef.current) {
           mapRef.current.animateToRegion(targetRegion, duration);
-          // Optionally update internal region state after animation if needed
-          // setCurrentRegion(targetRegion); // Be careful with this if onRegionChangeComplete is also used
         }
       },
+      getCurrentRegion: () => currentRegion,
+      getUserLocation: () => userLocation,
     }));
 
-    useEffect(() => {
-      const getUserLocation = async () => {
+    const getUserLocation = useCallback(async () => {
+      if (isLocationLoading) return;
+      setIsLocationLoading(true);
+
+      try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
           Alert.alert(
             "Permission Denied",
             "Location permission is required to show your position.",
           );
-          onLocationUpdate(null); // Inform parent
-          setUserLocation(null); // Update internal state
+          onLocationUpdate(null);
+          setUserLocation(null);
           return;
         }
 
-        try {
-          let location = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.High,
-          });
-          const fetchedLocation = {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          };
-          setUserLocation(fetchedLocation); // Update internal state for marker
-          onLocationUpdate(fetchedLocation); // Inform parent
-          // Optionally animate map to initial user location
-          // mapRef.current?.animateToRegion({
-          //   ...fetchedLocation,
-          //   latitudeDelta: 0.01,
-          //   longitudeDelta: 0.01,
-          // }, 1000);
-        } catch (error) {
-          Alert.alert("Error", "Could not fetch location.");
-          onLocationUpdate(null); // Inform parent
-          setUserLocation(null); // Update internal state
-        }
-      };
-      getUserLocation();
-      // Only run once on mount, dependencies might include onLocationUpdate if its identity changes
-    }, [onLocationUpdate]);
+        let location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+          timeout: 10000,
+        });
 
-    // Update internal region state when user manually moves the map
-    const handleRegionChangeComplete = (newRegion: Region) => {
-      setCurrentRegion(newRegion);
-      // console.log("Map Region Changed (User):", newRegion); // For debugging
-    };
-    //function to dismiss the Keyboard
-    const handleMapPress = () => {
+        const fetchedLocation: LocationType = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        };
+
+        setUserLocation(fetchedLocation);
+        onLocationUpdate(fetchedLocation);
+
+        if (animateToUserLocation && mapRef.current) {
+          const userRegion: Region = {
+            ...fetchedLocation,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          };
+          mapRef.current.animateToRegion(userRegion, 1000);
+        }
+      } catch (error) {
+        console.error("Location error:", error);
+        Alert.alert(
+          "Location Error",
+          "Could not fetch your current location.",
+        );
+        onLocationUpdate(null);
+        setUserLocation(null);
+      } finally {
+        setIsLocationLoading(false);
+      }
+    }, [onLocationUpdate, animateToUserLocation, isLocationLoading]);
+
+    useEffect(() => {
+      getUserLocation();
+    }, [getUserLocation]);
+
+    const handleRegionChangeComplete = useCallback(
+      (newRegion: Region) => {
+        setCurrentRegion(newRegion);
+        onRegionChange?.(newRegion);
+      },
+      [onRegionChange],
+    );
+
+    const handleMapPress = useCallback(() => {
       Keyboard.dismiss();
-    };
+    }, []);
 
     return (
       <View style={styles.container}>
@@ -107,21 +137,27 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
           ref={mapRef}
           style={styles.map}
           initialRegion={initialRegion}
-          region={currentRegion}
           onRegionChangeComplete={handleRegionChangeComplete}
           showsUserLocation={true}
           showsMyLocationButton={true}
-          zoomEnabled={true}
-          rotateEnabled={true}
+          provider={PROVIDER_GOOGLE}
           onPress={handleMapPress}
         >
-          {userLocation && (
-            <Marker
-              coordinate={userLocation}
-              title="Your Location"
-              // Optional: Use a custom marker image
-            />
+          {userLocation && showUserLocationMarker && (
+            <Marker coordinate={userLocation} title="Your Location" />
           )}
+          {parkingLots.map((lot) => (
+            <Marker
+              key={lot.id}
+              coordinate={{
+                latitude: parseFloat(lot.latitude),
+                longitude: parseFloat(lot.longitude),
+              }}
+              title={lot.name}
+              description={`${lot.available_spots_count} spots available`}
+              onPress={() => useParkingStore.getState().selectLot(lot)}
+            />
+          ))}
         </MapView>
       </View>
     );
@@ -131,7 +167,6 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   map: {
     width: "100%",
