@@ -15,9 +15,13 @@ import { Ionicons } from "@expo/vector-icons";
 import { LoginSchema } from "@/utils/validators/form-validators";
 import Input from "@/components/auth/input";
 import PasswordInput from "@/components/auth/password-input";
+import { useAuthStore } from "@/stores/auth";
+import { ActivityIndicator } from "react-native";
+import { formatToInternational } from "@/utils/format/input";
 
 const LoginScreen = () => {
   const router = useRouter();
+  const { login, isLoading } = useAuthStore();
   const [formData, setFormData] = useState({
     phoneNumber: "",
     password: "",
@@ -28,7 +32,6 @@ const LoginScreen = () => {
     password?: string;
   };
   const [errors, setErrors] = useState<ErrorState>({});
-  const [isLoading, setIsLoading] = useState(false);
 
   const validateForm = () => {
     const results = LoginSchema.safeParse(formData);
@@ -50,21 +53,20 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!validateForm()) return;
-
-    setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.replace("/(tabs)");
+      const payload = {
+        phone_number: formData.phoneNumber,
+        password: formData.password,
+      };
+
+      await login(payload);
     } catch (error) {
       Alert.alert("Login Failed", "Invalid phone number or password.");
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const updateFormData = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field as keyof ErrorState]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -80,7 +82,6 @@ const LoginScreen = () => {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
@@ -90,7 +91,6 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Title Section */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Welcome Back!</Text>
             <Text style={styles.subtitle}>
@@ -98,14 +98,16 @@ const LoginScreen = () => {
             </Text>
           </View>
 
-          {/* Form Container */}
           <View style={styles.formContainer}>
             <Input
               label="Phone Number"
               iconName="call-outline"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+255712345678"
               value={formData.phoneNumber}
-              onChangeText={(text) => updateFormData("phoneNumber", text)}
+              onChangeText={(text) => {
+                const formatted = formatToInternational(text);
+                updateFormData("phoneNumber", formatted);
+              }}
               error={errors.phoneNumber}
               keyboardType="phone-pad"
               autoCorrect={false}
@@ -124,7 +126,6 @@ const LoginScreen = () => {
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
 
-            {/* Submit Button */}
             <TouchableOpacity
               style={[
                 styles.submitButton,
@@ -132,10 +133,12 @@ const LoginScreen = () => {
               ]}
               onPress={handleLogin}
               disabled={isLoading}
-              activeOpacity={0.8}
+              accessibilityLabel="Sign In button"
+              accessibilityRole="button"
             >
               {isLoading ? (
                 <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color="#fff" />
                   <Text style={styles.submitButtonText}>Signing In...</Text>
                 </View>
               ) : (
@@ -146,7 +149,6 @@ const LoginScreen = () => {
               )}
             </TouchableOpacity>
 
-            {/* Sign Up */}
             <View style={styles.footerContainer}>
               <Text style={styles.footerText}>
                 Don't have an account?{" "}
@@ -164,7 +166,6 @@ const LoginScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,

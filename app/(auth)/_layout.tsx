@@ -1,6 +1,7 @@
-import { Stack } from "expo-router";
+import { Redirect, Stack } from "expo-router";
+import { useAuthStore } from "@/stores/auth";
 
-const TabsLayout = () => {
+const AuthLayout = () => {
   return (
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -11,4 +12,4 @@ const TabsLayout = () => {
   );
 };
 
-export default TabsLayout;
+export default AuthLayout;

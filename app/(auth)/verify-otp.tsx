@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   StyleSheet,
   SafeAreaView,
@@ -12,40 +12,37 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useState, useRef, useEffect } from "react";
+import { verifyOtp } from "@/services/auth";
 
 const VerifyOTPScreen = () => {
   const router = useRouter();
+  const { phone_number } = useLocalSearchParams<{ phone_number: string }>();
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [isLoading, setIsLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
   const [canResend, setCanResend] = useState(false);
-  const inputRefs = useRef([]);
+  const inputRefs = useRef<TextInput[]>([]);
 
-  // Timer for resend functionality
   useEffect(() => {
     if (resendTimer > 0) {
-      const timer = setTimeout(() => {
-        setResendTimer(resendTimer - 1);
-      }, 1000);
+      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
       return () => clearTimeout(timer);
     } else {
       setCanResend(true);
     }
   }, [resendTimer]);
 
-  const handleOtpChange = (value, index) => {
+  const handleOtpChange = (value: string, index: number) => {
     const newOtp = [...otp];
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus();
     }
   };
 
-  const handleKeyPress = (e, index) => {
-    // Handle backspace
+  const handleKeyPress = (e: any, index: number) => {
     if (e.nativeEvent.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
@@ -53,19 +50,16 @@ const VerifyOTPScreen = () => {
 
   const handleVerifyOTP = async () => {
     const otpString = otp.join("");
-
-    if (otpString.length !== 6) {
+    if (otpString.length !== 6 || !phone_number) {
       Alert.alert("Invalid OTP", "Please enter all 6 digits");
       return;
     }
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Navigate to next screen (e.g., dashboard or home)
-      router.push("/(tabs)"); // Adjust route as needed
+      await verifyOtp({ phone_number, otp: otpString });
+      Alert.alert("Success", "Phone number verified successfully!");
+      router.replace("/login");
     } catch (error) {
       Alert.alert("Verification Failed", "Invalid OTP. Please try again.");
     } finally {
@@ -75,20 +69,10 @@ const VerifyOTPScreen = () => {
 
   const handleResendOTP = async () => {
     if (!canResend) return;
-
-    try {
-      // Simulate resend API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      setResendTimer(60);
-      setCanResend(false);
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-
-      Alert.alert("OTP Sent", "A new OTP has been sent to your phone number");
-    } catch (error) {
-      Alert.alert("Error", "Failed to resend OTP. Please try again.");
-    }
+    // Implement resend OTP logic here if available in the API
+    setResendTimer(60);
+    setCanResend(false);
+    Alert.alert("OTP Sent", "A new OTP has been sent to your phone number.");
   };
 
   const isOtpComplete = otp.every((digit) => digit !== "");
@@ -99,7 +83,6 @@ const VerifyOTPScreen = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardContainer}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -110,27 +93,22 @@ const VerifyOTPScreen = () => {
         </View>
 
         <View style={styles.contentContainer}>
-          {/* Title Section */}
           <View style={styles.titleContainer}>
             <View style={styles.iconContainer}>
               <Ionicons name="mail-outline" size={48} color="#667eea" />
             </View>
             <Text style={styles.title}>Verify Your Phone</Text>
             <Text style={styles.subtitle}>
-              Enter the 6-digit code sent to your phone number
+              Enter the 6-digit code sent to {phone_number}
             </Text>
-            <TouchableOpacity style={styles.changeNumberButton}>
-              <Text style={styles.changeNumberText}>Wrong number?</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* OTP Input Section */}
           <View style={styles.otpContainer}>
             <View style={styles.otpInputContainer}>
               {otp.map((digit, index) => (
                 <TextInput
                   key={index}
-                  ref={(ref) => (inputRefs.current[index] = ref)}
+                  ref={(ref) => (inputRefs.current[index] = ref!)}
                   style={[styles.otpInput, digit && styles.otpInputFilled]}
                   value={digit}
                   onChangeText={(value) => handleOtpChange(value, index)}
@@ -143,7 +121,6 @@ const VerifyOTPScreen = () => {
               ))}
             </View>
 
-            {/* Verify Button */}
             <TouchableOpacity
               style={[
                 styles.verifyButton,
@@ -164,7 +141,6 @@ const VerifyOTPScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Resend Section */}
           <View style={styles.resendContainer}>
             <Text style={styles.resendText}>Didn't receive the code?</Text>
             <TouchableOpacity
@@ -187,7 +163,6 @@ const VerifyOTPScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,

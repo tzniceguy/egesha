@@ -10,16 +10,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { z } from "zod";
-import User from "@/utils/validators/user";
-
-// Mock user data for demonstration purposes
-const mockUser: z.infer<typeof User> & { avatar: string } = {
-  firstName: "John",
-  lastName: "Doe",
-  phoneNumber: "+1 (555) 123-4567",
-  avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d", // Placeholder avatar
-};
+import { useAuthStore } from "@/stores/auth";
 
 type ProfileMenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -46,6 +37,7 @@ const ProfileMenuItem = ({ icon, name, onPress }: ProfileMenuItemProps) => (
 
 const Page = () => {
   const router = useRouter();
+  const { logout, user } = useAuthStore();
 
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
@@ -53,9 +45,7 @@ const Page = () => {
       {
         text: "Log Out",
         onPress: () => {
-          // Perform logout logic here (e.g., clear auth tokens)
-          // Navigate to the login screen
-          router.replace("/login");
+          logout();
         },
         style: "destructive",
       },
@@ -69,6 +59,11 @@ const Page = () => {
       onPress: () => router.push("/profile/edit"), // Example route
     },
     {
+      icon: "car-outline",
+      name: "My Vehicles",
+      onPress: () => router.push("/vehicles"),
+    },
+    {
       icon: "card-outline",
       name: "Payment Methods",
       onPress: () => router.push("/profile/payment"), // Example route
@@ -76,7 +71,7 @@ const Page = () => {
     {
       icon: "receipt-outline",
       name: "My Bookings",
-      onPress: () => router.push("/profile/bookings"), // Example route
+      onPress: () => router.push("/(tabs)/bookings"),
     },
     {
       icon: "settings-outline",
@@ -95,11 +90,10 @@ const Page = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Profile Header */}
         <View style={styles.profileHeader}>
-          <Image source={{ uri: mockUser.avatar }} style={styles.avatar} />
           <Text style={styles.userName}>
-            {mockUser.firstName} {mockUser.lastName}
+            {user?.firstName} {user?.lastName}
           </Text>
-          <Text style={styles.userPhone}>{mockUser.phoneNumber}</Text>
+          <Text style={styles.userPhone}>{user?.phoneNumber}</Text>
         </View>
 
         {/* Menu Section */}

@@ -15,6 +15,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { RegisterSchema } from "@/utils/validators/form-validators";
 import Input from "@/components/auth/input";
 import PasswordInput from "@/components/auth/password-input";
+import { registerUser } from "@/services/auth";
+import { formatToInternational } from "@/utils/format/input";
 
 const RegisterScreen = () => {
   const router = useRouter();
@@ -57,9 +59,17 @@ const RegisterScreen = () => {
 
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      router.push("/verify-otp");
+      const payload = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        phone_number: formData.phoneNumber,
+        password: formData.password,
+      };
+      await registerUser(payload);
+      router.push({
+        pathname: "/verify-otp",
+        params: { phone_number: formData.phoneNumber },
+      });
     } catch (error) {
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
@@ -69,7 +79,6 @@ const RegisterScreen = () => {
 
   const updateFormData = (field: keyof typeof formData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field as keyof ErrorState]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -85,7 +94,6 @@ const RegisterScreen = () => {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
@@ -95,7 +103,6 @@ const RegisterScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Title Section */}
           <View style={styles.titleContainer}>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
@@ -103,7 +110,6 @@ const RegisterScreen = () => {
             </Text>
           </View>
 
-          {/* Form Container */}
           <View style={styles.formContainer}>
             <Input
               label="First Name"
@@ -130,9 +136,12 @@ const RegisterScreen = () => {
             <Input
               label="Phone Number"
               iconName="call-outline"
-              placeholder="+1 (555) 123-4567"
+              placeholder="+255712345678"
               value={formData.phoneNumber}
-              onChangeText={(text) => updateFormData("phoneNumber", text)}
+              onChangeText={(text) => {
+                const formatted = formatToInternational(text);
+                updateFormData("phoneNumber", formatted);
+              }}
               error={errors.phoneNumber}
               keyboardType="phone-pad"
               autoCorrect={false}
@@ -147,7 +156,6 @@ const RegisterScreen = () => {
               autoCorrect={false}
             />
 
-            {/* Submit Button */}
             <TouchableOpacity
               style={[
                 styles.submitButton,
@@ -171,7 +179,6 @@ const RegisterScreen = () => {
               )}
             </TouchableOpacity>
 
-            {/* Terms */}
             <View style={styles.termsContainer}>
               <Text style={styles.termsText}>
                 By continuing, you agree to our{" "}
@@ -185,7 +192,6 @@ const RegisterScreen = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
