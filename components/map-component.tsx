@@ -10,13 +10,20 @@ import MapView, {
   Marker,
   PROVIDER_GOOGLE,
   Region,
-  Polyline,
 } from "react-native-maps";
-import { StyleSheet, View, Alert, Keyboard } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Alert,
+  Keyboard,
+  TouchableOpacity,
+} from "react-native";
 import * as Location from "expo-location";
 import { ParkingLots } from "@/lib/types";
 import { MapViewRoute } from "react-native-maps-routes";
 import { GOOGLE_MAPS_API_KEY } from "@/lib/config";
+import { LocateFixed } from "lucide-react-native";
+import colors from "@/lib/styles/colors";
 
 type LocationType = {
   latitude: number;
@@ -28,7 +35,6 @@ interface MapComponentProps {
   onRegionChange?: (region: Region) => void;
   initialRegion?: Region;
   showUserLocationMarker?: boolean;
-  animateToUserLocation?: boolean;
   parkingLots?: ParkingLots[];
   destination?: LocationType | null;
   showRoute?: boolean;
@@ -57,12 +63,12 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       onRegionChange,
       initialRegion = DEFAULT_REGION,
       showUserLocationMarker = true,
-      animateToUserLocation = false,
       parkingLots = [],
       destination = null,
       showRoute = true,
       routeColor = "#1a73e8",
       routeWidth = 4,
+      onMarkerPress,
     },
     ref,
   ) => {
@@ -110,7 +116,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
         setUserLocation(fetchedLocation);
         onLocationUpdate(fetchedLocation);
 
-        if (animateToUserLocation && mapRef.current) {
+        if (mapRef.current) {
           const userRegion: Region = {
             ...fetchedLocation,
             latitudeDelta: 0.01,
@@ -126,11 +132,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       } finally {
         setIsLocationLoading(false);
       }
-    }, [onLocationUpdate, animateToUserLocation, isLocationLoading]);
-
-    useEffect(() => {
-      getUserLocation();
-    }, [getUserLocation]);
+    }, [onLocationUpdate, isLocationLoading]);
 
     const handleRegionChangeComplete = useCallback(
       (newRegion: Region) => {
@@ -152,7 +154,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
           initialRegion={initialRegion}
           onRegionChangeComplete={handleRegionChangeComplete}
           showsUserLocation={true}
-          showsMyLocationButton={true}
+          showsMyLocationButton={false} // Disable default button
           provider={PROVIDER_GOOGLE}
           onPress={handleMapPress}
         >
@@ -191,6 +193,9 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
             />
           )}
         </MapView>
+        <TouchableOpacity style={styles.locationButton} onPress={getUserLocation}>
+          <LocateFixed size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
     );
   },
@@ -203,6 +208,15 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
+  },
+  locationButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 50,
+    elevation: 4,
   },
 });
 

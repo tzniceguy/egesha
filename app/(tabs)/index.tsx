@@ -17,7 +17,6 @@ const Page = () => {
   const {
     mapRef,
     handleLocationUpdate,
-    handleModalStateChange,
     userLocation,
   } = useMapLogic();
   const { nearbyLots, selectLot, setSearchResults } = useParkingStore();
@@ -79,7 +78,6 @@ const Page = () => {
       />
 
       <SearchModal
-        onStateChange={handleModalStateChange}
         onSearch={setSearchQuery}
         searchResults={nearbyLots}
         onResultPress={handleResultPress}
