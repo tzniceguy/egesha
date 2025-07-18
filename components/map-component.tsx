@@ -15,9 +15,8 @@ import {
   TouchableOpacity,
 } from "react-native";
 import * as Location from "expo-location";
-import { ParkingLots } from "@/lib/types";
+import { ParkingLot } from "@/lib/types";
 import { MapViewRoute } from "react-native-maps-routes";
-import { GOOGLE_MAPS_API_KEY } from "@/lib/config";
 import { LocateFixed } from "lucide-react-native";
 import colors from "@/lib/styles/colors";
 import ParkingMarker from "./parking-marker";
@@ -32,13 +31,13 @@ interface MapComponentProps {
   onRegionChange?: (region: Region) => void;
   initialRegion?: Region;
   showUserLocationMarker?: boolean;
-  parkingLots?: ParkingLots[];
+  parkingLots?: ParkingLot[];
   destination?: LocationType | null;
   showRoute?: boolean;
   selectedLotId?: number;
   routeColor?: string;
   routeWidth?: number;
-  onMarkerPress?: (lot: ParkingLots) => void;
+  onMarkerPress?: (lot: ParkingLot) => void;
 }
 
 export interface MapComponentRef {
@@ -75,6 +74,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
     const [userLocation, setUserLocation] = useState<LocationType | null>(null);
     const [currentRegion, setCurrentRegion] = useState<Region>(initialRegion);
     const [isLocationLoading, setIsLocationLoading] = useState(false);
+    const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
 
     useImperativeHandle(ref, () => ({
       animateToRegion: (targetRegion: Region, duration: number = 1000) => {
