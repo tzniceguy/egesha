@@ -32,6 +32,10 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
             <Stack.Screen name="vehicles" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="parking/[id]"
+              options={{ headerShown: false }}
+            />
           </Stack.Protected>
         </Stack>
       </GestureHandlerRootView>

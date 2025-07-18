@@ -20,23 +20,23 @@ export interface LoginCredentials {
   password?: string;
 }
 
-export interface ParkingLots {
+export interface ParkingLot {
   id: number;
   name: string;
   address: string;
   latitude: string;
   longitude: string;
   available_spots_count: number;
-  openingHours: string;
-  closingHours: string;
+  opening_hours: string;
+  closing_hours: string;
 }
 
 export interface ParkingSpot {
   id: number;
-  spotNumber: string;
-  spotType: string;
-  hourlyRate: string;
-  isAvailable: boolean;
+  spot_number: string;
+  spot_type: string;
+  hourly_rate: string;
+  is_available: boolean;
 }
 
 export interface BookingData {
