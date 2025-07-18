@@ -1,10 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { View, StyleSheet } from "react-native";
 import MapComponent from "@/components/map-component";
 import SearchModal from "@/components/search-component";
 import { useMapLogic } from "@/hooks/use-map-logic";
 import { INITIAL_MAP_REGION } from "@/lib/constants";
-import { useParkingStore } from "@/stores/parking";
 import {
   getNearbyParkingLots,
   searchParkingLocations,
@@ -14,18 +13,26 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 
 const Page = () => {
-  const {
-    mapRef,
-    handleLocationUpdate,
-    userLocation,
-  } = useMapLogic();
-  const { nearbyLots, selectLot, setSearchResults } = useParkingStore();
-  const [destination, setDestination] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   const router = useRouter();
+  const { mapRef, handleLocationUpdate, userLocation } = useMapLogic();
+  const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [destination, setDestination] = useState(null);
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
 
-  const { data: searchResults, isFetching: isSearching } = useQuery({
+  // Fetch nearby parking lots
+  const { data: parkingLots = [], isLoading: isLoadingNearby } = useQuery({
+    queryKey: ["nearbyLots", userLocation?.latitude, userLocation?.longitude],
+    queryFn: () =>
+      getNearbyParkingLots({
+        lat: userLocation?.latitude,
+        lon: userLocation?.longitude,
+      }),
+    enabled: !!userLocation,
+  });
+
+  // Search functionality
+  const { data: searchResults = [], isFetching: isSearching } = useQuery({
     queryKey: [
       "parkingSearch",
       debouncedSearchQuery,
@@ -35,34 +42,30 @@ const Page = () => {
     queryFn: () =>
       searchParkingLocations({
         query: debouncedSearchQuery,
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
+        latitude: userLocation?.latitude,
+        longitude: userLocation?.longitude,
         radius: 5000,
       }),
     enabled: !!userLocation && debouncedSearchQuery.length > 2,
   });
 
-  const { data: nearbyParkingLots, isFetching: isFetchingNearby } = useQuery({
-    queryKey: ["nearbyLots", userLocation?.latitude, userLocation?.longitude],
-    queryFn: () =>
-      getNearbyParkingLots({
-        lat: userLocation.latitude,
-        lon: userLocation.longitude,
-      }),
-    enabled: !!userLocation,
-  });
-
-  useEffect(() => {
-    if (searchResults) {
-      setSearchResults(searchResults);
-    } else if (nearbyParkingLots) {
-      setSearchResults(nearbyParkingLots);
-    }
-  }, [searchResults, nearbyParkingLots, setSearchResults]);
+  // Determine which lots to display
+  const displayedLots = searchQuery.length > 2 ? searchResults : parkingLots;
 
   const handleResultPress = (result) => {
-    selectLot(result);
+    setDestination({
+      latitude: parseFloat(result.latitude),
+      longitude: parseFloat(result.longitude),
+    });
     router.push(`/parking/${result.id}`);
+  };
+
+  const handleMarkerPress = (lot) => {
+    router.push(`/parking/${lot.id}`);
+    setDestination({
+      latitude: parseFloat(lot.latitude),
+      longitude: parseFloat(lot.longitude),
+    });
   };
 
   return (
@@ -71,15 +74,15 @@ const Page = () => {
         ref={mapRef}
         onLocationUpdate={handleLocationUpdate}
         initialRegion={INITIAL_MAP_REGION}
-        parkingLots={nearbyLots}
+        parkingLots={displayedLots}
         destination={destination}
         showRoute={!!destination}
-        onMarkerPress={(lot) => router.push(`/parking/${lot.id}`)}
+        onMarkerPress={handleMarkerPress}
       />
 
       <SearchModal
         onSearch={setSearchQuery}
-        searchResults={nearbyLots}
+        searchResults={displayedLots}
         onResultPress={handleResultPress}
         isSearching={isSearching}
       />

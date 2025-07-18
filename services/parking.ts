@@ -7,7 +7,7 @@ interface NearbyLotsParams {
 }
 
 export const getNearbyParkingLots = async (params: NearbyLotsParams) => {
-  const response = await apiClient.get("parking/lots/nearby/", {
+  const response = await apiClient.get("parking/lots/", {
     params,
   });
   return response.data;
