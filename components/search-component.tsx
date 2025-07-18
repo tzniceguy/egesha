@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import colors from "@/lib/styles/colors";
-import { Calendar, Search, X } from "lucide-react-native";
+import { Search, X } from "lucide-react-native";
 import {
   View,
   StyleSheet,
@@ -19,14 +19,10 @@ import Animated, {
   runOnJS,
 } from "react-native-reanimated";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { format } from "date-fns";
 
 interface SearchModalProps {
   onStateChange?: (isExpanded: boolean) => void;
-  onSearch: (query: string, available_at?: string) => void;
-  onSearchChange?: (text: string) => void;
-  onSchedulePress?: () => void;
+  onSearch: (query: string) => void;
   searchResults?: ParkingSearchResults[];
   onResultPress?: (result: {
     id: string;
@@ -45,7 +41,6 @@ const EXPANDED_HEIGHT = 400;
 const SearchModal = ({
   onStateChange,
   onSearch,
-  onSchedulePress,
   searchResults = [],
   onResultPress,
   searchValue = "",
@@ -56,26 +51,10 @@ const SearchModal = ({
   const isExpanded = useSharedValue(false);
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState(searchValue);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState<Date | undefined>(undefined);
 
   const handleSearchChange = (text: string) => {
     setSearchText(text);
-    onSearch(
-      text,
-      selectedTime ? format(selectedTime, "HH:mm") : undefined,
-    );
-  };
-
-  const onTimeChange = (event: any, newTime?: Date) => {
-    setShowTimePicker(false);
-    if (newTime) {
-      setSelectedTime(newTime);
-      onSearch(
-        searchText,
-        format(newTime, "HH:mm"),
-      );
-    }
+    onSearch(text);
   };
 
   useEffect(() => {
@@ -184,10 +163,6 @@ const SearchModal = ({
     }
   };
 
-  const handleSchedulePress = () => {
-    setShowTimePicker(true);
-  };
-
   const clearSearch = () => {
     setSearchText("");
     handleSearchChange("");
@@ -241,27 +216,7 @@ const SearchModal = ({
                 </TouchableOpacity>
               )}
             </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSchedulePress}
-            >
-              <Calendar size={24} color={colors.primary} />
-              <Text style={styles.buttonText}>
-                {selectedTime ? format(selectedTime, "HH:mm") : "schedule"}
-              </Text>
-            </TouchableOpacity>
           </View>
-
-          {showTimePicker && (
-            <DateTimePicker
-              value={selectedTime || new Date()}
-              mode="time"
-              is24Hour={true}
-              display="default"
-              onChange={onTimeChange}
-            />
-          )}
 
           <Animated.View style={[styles.expandedContent]}>
             {isSearching ? (

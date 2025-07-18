@@ -15,7 +15,8 @@ import MapView, {
 import { StyleSheet, View, Alert, Keyboard } from "react-native";
 import * as Location from "expo-location";
 import { ParkingLots } from "@/lib/types";
-import { getRoute } from "react-native-maps-routes"; // Import the route utility
+import { MapViewRoute } from "react-native-maps-routes";
+import { GOOGLE_MAPS_API_KEY } from "@/lib/config";
 
 type LocationType = {
   latitude: number;
@@ -29,17 +30,17 @@ interface MapComponentProps {
   showUserLocationMarker?: boolean;
   animateToUserLocation?: boolean;
   parkingLots?: ParkingLots[];
-  destination?: LocationType | null; // New prop for destination
-  showRoute?: boolean; // Whether to show the route
-  routeColor?: string; // Color of the route line
-  routeWidth?: number; // Width of the route line
+  destination?: LocationType | null;
+  showRoute?: boolean;
+  routeColor?: string;
+  routeWidth?: number;
+  onMarkerPress?: (lot: ParkingLots) => void;
 }
 
 export interface MapComponentRef {
   animateToRegion: (region: Region, duration?: number) => void;
   getCurrentRegion: () => Region | undefined;
   getUserLocation: () => LocationType | null;
-  calculateRoute: (destination: LocationType) => Promise<void>; // New method to calculate route
 }
 
 const DEFAULT_REGION: Region = {
@@ -69,51 +70,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
     const [userLocation, setUserLocation] = useState<LocationType | null>(null);
     const [currentRegion, setCurrentRegion] = useState<Region>(initialRegion);
     const [isLocationLoading, setIsLocationLoading] = useState(false);
-    const [routeCoordinates, setRouteCoordinates] = useState<LocationType[]>(
-      [],
-    ); // Store route coordinates
 
-    // Calculate route between two points
-    const calculateRoute = useCallback(
-      async (destination: LocationType) => {
-        if (!userLocation) {
-          Alert.alert("Error", "User location not available");
-          return;
-        }
-
-        try {
-          const route = await getRoute({
-            origin: {
-              latitude: userLocation.latitude,
-              longitude: userLocation.longitude,
-            },
-            destination: {
-              latitude: destination.latitude,
-              longitude: destination.longitude,
-            },
-            // You can add more options here like travelMode: 'driving', 'walking', etc.
-          });
-
-          if (route && route.coordinates) {
-            setRouteCoordinates(route.coordinates);
-
-            // Optionally animate to show the entire route
-            if (mapRef.current) {
-              mapRef.current.fitToCoordinates(route.coordinates, {
-                edgePadding: { top: 100, right: 100, bottom: 100, left: 100 },
-                animated: true,
-              });
-            }
-          }
-        } catch (error) {
-          console.error("Route calculation error:", error);
-          Alert.alert("Error", "Could not calculate route");
-        }
-      },
-      [userLocation],
-    );
-
-    // Expose the calculateRoute method via ref
     useImperativeHandle(ref, () => ({
       animateToRegion: (targetRegion: Region, duration: number = 1000) => {
         if (mapRef.current) {
@@ -122,17 +79,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       },
       getCurrentRegion: () => currentRegion,
       getUserLocation: () => userLocation,
-      calculateRoute, // Expose the route calculation method
     }));
-
-    // Calculate route when destination prop changes
-    useEffect(() => {
-      if (destination && showRoute) {
-        calculateRoute(destination);
-      } else {
-        setRouteCoordinates([]); // Clear route if no destination
-      }
-    }, [destination, showRoute, calculateRoute]);
 
     const getUserLocation = useCallback(async () => {
       if (isLocationLoading) return;
@@ -222,7 +169,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
               }}
               title={lot.name}
               description={`${lot.available_spots_count} spots available`}
-              onPress={() => useParkingStore.getState().selectLot(lot)}
+              onPress={() => onMarkerPress?.(lot)}
             />
           ))}
 
@@ -234,11 +181,13 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
             />
           )}
 
-          {showRoute && routeCoordinates.length > 0 && (
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeColor={routeColor}
+          {userLocation && destination && showRoute && (
+            <MapViewRoute
+              origin={userLocation}
+              destination={destination}
+              apiKey={GOOGLE_MAPS_API_KEY}
               strokeWidth={routeWidth}
+              strokeColor={routeColor}
             />
           )}
         </MapView>

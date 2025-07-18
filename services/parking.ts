@@ -20,13 +20,17 @@ export const getAvailableSpots = async (lotId: number) => {
   return response.data;
 };
 
+export const getParkingLot = async (lotId: number) => {
+  const response = await apiClient.get(`/parking/lots/${lotId}/`);
+  return response.data;
+};
+
 // Define types for search parameters
 export interface SearchParkingParams {
   query: string;
   latitude?: number; // Optional: for location-based search
   longitude?: number; // Optional: for location-based search
   radius?: number; // Optional: search radius in meters
-  available_at?: string; // Optional: time in HH:MM format
 }
 
 // Define the response type
@@ -52,7 +56,6 @@ export const searchParkingLocations = async (
         lat: params.latitude,
         lon: params.longitude,
         radius: params.radius,
-        available_at: params.available_at,
       },
     });
 

@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useAuthStore } from "@/stores/auth";
+import { useVehicleStore } from "@/stores/vehicle";
 import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -8,10 +9,14 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const { isAuthenticated, initialize } = useAuthStore();
+  const { fetchVehicles } = useVehicleStore();
 
   useEffect(() => {
     initialize();
-  }, [initialize]);
+    if (isAuthenticated) {
+      fetchVehicles();
+    }
+  }, [initialize, isAuthenticated, fetchVehicles]);
 
   return (
     <QueryClientProvider client={queryClient}>

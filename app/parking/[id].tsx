@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -7,27 +7,35 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from "react-native";
-import { useParkingStore } from "@/stores/parking";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useQuery } from "@tanstack/react-query";
+import { getParkingLot, getAvailableSpots } from "@/services/parking";
 import { useVehicleStore } from "@/stores/vehicle";
 import { createBooking } from "@/services/booking";
 import { addHours, formatISO } from "date-fns";
+import { ParkingSpot } from "@/lib/types";
 
-interface ParkingLotDetailsProps {
-  onNavigate?: (destination: { latitude: number; longitude: number }) => void;
-}
-
-const ParkingLotDetails = ({ onNavigate }: ParkingLotDetailsProps) => {
-  const {
-    selectedLot,
-    availableSpots,
-    selectedSpot,
-    selectSpot,
-    clearSelection,
-  } = useParkingStore();
+const ParkingDetailsPage = () => {
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
   const { vehicles } = useVehicleStore();
+  const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
+
+  const { data: lot, isLoading: isLotLoading } = useQuery({
+    queryKey: ["parkingLot", id],
+    queryFn: () => getParkingLot(Number(id)),
+    enabled: !!id,
+  });
+
+  const { data: availableSpots, isLoading: areSpotsLoading } = useQuery({
+    queryKey: ["availableSpots", id],
+    queryFn: () => getAvailableSpots(Number(id)),
+    enabled: !!id,
+  });
 
   const handleBooking = async () => {
     if (!selectedSpot || !vehicles.length) {
@@ -57,28 +65,37 @@ const ParkingLotDetails = ({ onNavigate }: ParkingLotDetailsProps) => {
     }
   };
 
-  const handleClose = () => {
-    clearSelection();
-    setBookingSuccess(false);
-  };
+  if (isLotLoading || areSpotsLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
 
-  if (!selectedLot) return null;
+  if (!lot) {
+    return (
+      <View style={styles.container}>
+        <Text>Parking lot not found.</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{selectedLot.name}</Text>
+      <Text style={styles.title}>{lot.name}</Text>
       {!bookingSuccess ? (
         <>
           <Text style={styles.subtitle}>Select a Spot:</Text>
           <ScrollView style={styles.spotsContainer}>
-            {availableSpots.map((spot) => (
+            {availableSpots?.map((spot) => (
               <TouchableOpacity
                 key={spot.id}
                 style={[
                   styles.spot,
                   selectedSpot?.id === spot.id && styles.selectedSpot,
                 ]}
-                onPress={() => selectSpot(spot)}
+                onPress={() => setSelectedSpot(spot)}
               >
                 <Text style={styles.spotText}>{spot.spot_number}</Text>
                 <Text style={styles.spotText}>${spot.hourly_rate}/hr</Text>
@@ -86,7 +103,7 @@ const ParkingLotDetails = ({ onNavigate }: ParkingLotDetailsProps) => {
             ))}
           </ScrollView>
           <View style={styles.buttonContainer}>
-            <Button title="Close" onPress={handleClose} color="#666" />
+            <Button title="Back" onPress={() => router.back()} color="#666" />
             <Button
               title={isBooking ? "Booking..." : "Book Now"}
               onPress={handleBooking}
@@ -99,19 +116,8 @@ const ParkingLotDetails = ({ onNavigate }: ParkingLotDetailsProps) => {
         <>
           <Text>Your booking is confirmed!</Text>
           <View style={styles.buttonContainer}>
-            <Button title="Close" onPress={handleClose} color="#666" />
-            {onNavigate && (
-              <Button
-                title="Navigate"
-                onPress={() =>
-                  onNavigate({
-                    latitude: parseFloat(selectedLot.latitude),
-                    longitude: parseFloat(selectedLot.longitude),
-                  })
-                }
-                color="#1a73e8"
-              />
-            )}
+            <Button title="Done" onPress={() => router.back()} color="#666" />
+            {/* You can add a navigate button here if you want to navigate to the map */}
           </View>
         </>
       )}
@@ -121,28 +127,21 @@ const ParkingLotDetails = ({ onNavigate }: ParkingLotDetailsProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    backgroundColor: "white",
+    flex: 1,
     padding: 16,
-    borderRadius: 8,
-    elevation: 4,
-    maxHeight: "40%",
   },
   title: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 8,
+    marginBottom: 16,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
     marginBottom: 8,
   },
   spotsContainer: {
-    maxHeight: 150,
+    flex: 1,
   },
   spot: {
     flexDirection: "row",
@@ -168,4 +167,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ParkingLotDetails;
+export default ParkingDetailsPage;

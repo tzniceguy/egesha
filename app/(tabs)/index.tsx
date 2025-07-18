@@ -5,22 +5,26 @@ import SearchModal from "@/components/search-component";
 import { useMapLogic } from "@/hooks/use-map-logic";
 import { INITIAL_MAP_REGION } from "@/lib/constants";
 import { useParkingStore } from "@/stores/parking";
-import ParkingLotDetails from "@/components/parking-lot-details";
 import {
   getNearbyParkingLots,
   searchParkingLocations,
 } from "@/services/parking";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useQuery } from "@tanstack/react-query";
+import { useRouter } from "expo-router";
 
 const Page = () => {
-  const { mapRef, handleLocationUpdate, handleModalStateChange, userLocation } =
-    useMapLogic();
-  const { nearbyLots, selectedLot, setSearchResults } = useParkingStore();
+  const {
+    mapRef,
+    handleLocationUpdate,
+    handleModalStateChange,
+    userLocation,
+  } = useMapLogic();
+  const { nearbyLots, selectLot, setSearchResults } = useParkingStore();
   const [destination, setDestination] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [availableAt, setAvailableAt] = useState<string | undefined>(undefined);
   const debouncedSearchQuery = useDebounce(searchQuery, 500);
+  const router = useRouter();
 
   const { data: searchResults, isFetching: isSearching } = useQuery({
     queryKey: [
@@ -28,7 +32,6 @@ const Page = () => {
       debouncedSearchQuery,
       userLocation?.latitude,
       userLocation?.longitude,
-      availableAt,
     ],
     queryFn: () =>
       searchParkingLocations({
@@ -36,7 +39,6 @@ const Page = () => {
         latitude: userLocation.latitude,
         longitude: userLocation.longitude,
         radius: 5000,
-        available_at: availableAt,
       }),
     enabled: !!userLocation && debouncedSearchQuery.length > 2,
   });
@@ -59,35 +61,9 @@ const Page = () => {
     }
   }, [searchResults, nearbyParkingLots, setSearchResults]);
 
-  const handleSearch = (query: string, available_at?: string) => {
-    setSearchQuery(query);
-    setAvailableAt(available_at);
-  };
-
   const handleResultPress = (result) => {
-    setDestination({
-      latitude: result.latitude,
-      longitude: result.longitude,
-    });
-
-    if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: result.latitude,
-          longitude: result.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        1000,
-      );
-    }
-  };
-
-  const handleNavigate = (destination) => {
-    setDestination(destination);
-    if (mapRef.current && userLocation) {
-      mapRef.current.calculateRoute(destination);
-    }
+    selectLot(result);
+    router.push(`/parking/${result.id}`);
   };
 
   return (
@@ -99,17 +75,16 @@ const Page = () => {
         parkingLots={nearbyLots}
         destination={destination}
         showRoute={!!destination}
+        onMarkerPress={(lot) => router.push(`/parking/${lot.id}`)}
       />
 
       <SearchModal
         onStateChange={handleModalStateChange}
-        onSearch={handleSearch}
+        onSearch={setSearchQuery}
         searchResults={nearbyLots}
         onResultPress={handleResultPress}
         isSearching={isSearching}
       />
-
-      <ParkingLotDetails onNavigate={handleNavigate} />
     </View>
   );
 };
