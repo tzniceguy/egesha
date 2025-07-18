@@ -7,9 +7,20 @@ import React, {
   useCallback,
 } from "react";
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
-import { StyleSheet, View, Alert, Keyboard } from "react-native";
+import {
+  StyleSheet,
+  View,
+  Alert,
+  Keyboard,
+  TouchableOpacity,
+} from "react-native";
 import * as Location from "expo-location";
 import { ParkingLots } from "@/lib/types";
+import { MapViewRoute } from "react-native-maps-routes";
+import { GOOGLE_MAPS_API_KEY } from "@/lib/config";
+import { LocateFixed } from "lucide-react-native";
+import colors from "@/lib/styles/colors";
+import ParkingMarker from "./parking-marker";
 
 type LocationType = {
   latitude: number;
@@ -21,8 +32,13 @@ interface MapComponentProps {
   onRegionChange?: (region: Region) => void;
   initialRegion?: Region;
   showUserLocationMarker?: boolean;
-  animateToUserLocation?: boolean;
   parkingLots?: ParkingLots[];
+  destination?: LocationType | null;
+  showRoute?: boolean;
+  selectedLotId?: number;
+  routeColor?: string;
+  routeWidth?: number;
+  onMarkerPress?: (lot: ParkingLots) => void;
 }
 
 export interface MapComponentRef {
@@ -32,7 +48,7 @@ export interface MapComponentRef {
 }
 
 const DEFAULT_REGION: Region = {
-  latitude: -6.8235,
+  latitude: 6.8235,
   longitude: 39.2695,
   latitudeDelta: 0.0922,
   longitudeDelta: 0.0421,
@@ -45,8 +61,13 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       onRegionChange,
       initialRegion = DEFAULT_REGION,
       showUserLocationMarker = true,
-      animateToUserLocation = false,
       parkingLots = [],
+      destination = null,
+      showRoute = true,
+      routeColor = "#1a73e8",
+      selectedLotId,
+      routeWidth = 4,
+      onMarkerPress,
     },
     ref,
   ) => {
@@ -83,7 +104,6 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
 
         let location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
-          timeout: 10000,
         });
 
         const fetchedLocation: LocationType = {
@@ -94,7 +114,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
         setUserLocation(fetchedLocation);
         onLocationUpdate(fetchedLocation);
 
-        if (animateToUserLocation && mapRef.current) {
+        if (mapRef.current) {
           const userRegion: Region = {
             ...fetchedLocation,
             latitudeDelta: 0.01,
@@ -103,21 +123,13 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
           mapRef.current.animateToRegion(userRegion, 1000);
         }
       } catch (error) {
-        console.error("Location error:", error);
-        Alert.alert(
-          "Location Error",
-          "Could not fetch your current location.",
-        );
+        Alert.alert("Location Error", "Could not fetch your current location.");
         onLocationUpdate(null);
         setUserLocation(null);
       } finally {
         setIsLocationLoading(false);
       }
-    }, [onLocationUpdate, animateToUserLocation, isLocationLoading]);
-
-    useEffect(() => {
-      getUserLocation();
-    }, [getUserLocation]);
+    }, [onLocationUpdate, isLocationLoading]);
 
     const handleRegionChangeComplete = useCallback(
       (newRegion: Region) => {
@@ -139,26 +151,55 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
           initialRegion={initialRegion}
           onRegionChangeComplete={handleRegionChangeComplete}
           showsUserLocation={true}
-          showsMyLocationButton={true}
+          showsMyLocationButton={false} // Disable default button
           provider={PROVIDER_GOOGLE}
           onPress={handleMapPress}
         >
           {userLocation && showUserLocationMarker && (
             <Marker coordinate={userLocation} title="Your Location" />
           )}
+
           {parkingLots.map((lot) => (
             <Marker
               key={lot.id}
               coordinate={{
-                latitude: parseFloat(lot.latitude),
-                longitude: parseFloat(lot.longitude),
+                latitude: Number(lot.latitude),
+                longitude: Number(lot.longitude),
               }}
-              title={lot.name}
-              description={`${lot.available_spots_count} spots available`}
-              onPress={() => useParkingStore.getState().selectLot(lot)}
-            />
+              anchor={{ x: 0.5, y: 0.5 }}
+              onPress={() => onMarkerPress?.(lot)}
+            >
+              <ParkingMarker
+                available={lot.available_spots_count}
+                selected={lot.id === selectedLotId}
+              />
+            </Marker>
           ))}
+
+          {destination && (
+            <Marker
+              coordinate={destination}
+              title="Destination"
+              pinColor="green"
+            />
+          )}
+
+          {userLocation && destination && showRoute && (
+            <MapViewRoute
+              origin={userLocation}
+              destination={destination}
+              apiKey={GOOGLE_MAPS_API_KEY}
+              strokeWidth={routeWidth}
+              strokeColor={routeColor}
+            />
+          )}
         </MapView>
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={getUserLocation}
+        >
+          <LocateFixed size={24} color={colors.primary} />
+        </TouchableOpacity>
       </View>
     );
   },
@@ -171,6 +212,31 @@ const styles = StyleSheet.create({
   map: {
     width: "100%",
     height: "100%",
+  },
+  locationButton: {
+    position: "absolute",
+    top: 60,
+    right: 20,
+    backgroundColor: "white",
+    padding: 10,
+    borderRadius: 50,
+    elevation: 4,
+  },
+  userMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary + "40", // semi-transparent
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userMarkerInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
 });
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import colors from "@/lib/styles/colors";
-import { Calendar, Search, X } from "lucide-react-native";
+import { Search, X } from "lucide-react-native";
 import {
   View,
   StyleSheet,
@@ -17,48 +17,46 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   runOnJS,
-  interpolate,
 } from "react-native-reanimated";
-import {
-  GestureDetector,
-  Gesture,
-  PanGestureHandler,
-} from "react-native-gesture-handler";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 
 interface SearchModalProps {
   onStateChange?: (isExpanded: boolean) => void;
-  onSearchChange?: (text: string) => void;
-  onSchedulePress?: () => void;
+  onSearch: (query: string) => void;
+  searchResults?: ParkingSearchResults[];
+  onResultPress?: (result: {
+    id: string;
+    latitude: number;
+    longitude: number;
+  }) => void;
   searchValue?: string;
   placeholder?: string;
+  isSearching?: boolean;
 }
-
-// Define map region type (can be shared or defined in Page)
-type Region = {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-};
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const COLLAPSED_HEIGHT = 200;
 const EXPANDED_HEIGHT = 400;
-const HANDLE_HEIGHT = 30;
 
 const SearchModal = ({
   onStateChange,
-  onSearchChange,
-  onSchedulePress,
+  onSearch,
+  searchResults = [],
+  onResultPress,
   searchValue = "",
   placeholder = "where to?",
+  isSearching = false,
 }: SearchModalProps) => {
   const height = useSharedValue(COLLAPSED_HEIGHT);
   const isExpanded = useSharedValue(false);
   const inputRef = useRef<TextInput>(null);
   const [searchText, setSearchText] = useState(searchValue);
 
-  // Handle keyboard events
+  const handleSearchChange = (text: string) => {
+    setSearchText(text);
+    onSearch(text);
+  };
+
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener(
       "keyboardDidShow",
@@ -71,10 +69,7 @@ const SearchModal = ({
 
     const keyboardDidHideListener = Keyboard.addListener(
       "keyboardDidHide",
-      () => {
-        // Optionally collapse when keyboard hides
-        // collapseModal();
-      },
+      () => {},
     );
 
     return () => {
@@ -114,12 +109,10 @@ const SearchModal = ({
     }
   };
 
-  // Gesture for handle bar tap
   const handleTapGesture = Gesture.Tap().onEnd(() => {
     toggleModal();
   });
 
-  // Pan gesture for drag to expand/collapse
   const panGesture = Gesture.Pan()
     .onUpdate((event) => {
       "worklet";
@@ -134,18 +127,13 @@ const SearchModal = ({
       const currentHeight = height.value;
       const midPoint = (COLLAPSED_HEIGHT + EXPANDED_HEIGHT) / 2;
 
-      // Determine final state based on position and velocity
       if (velocity > 500) {
-        // Fast downward swipe - collapse
         collapseModal();
       } else if (velocity < -500) {
-        // Fast upward swipe - expand
         expandModal();
       } else if (currentHeight > midPoint) {
-        // Above midpoint - expand
         expandModal();
       } else {
-        // Below midpoint - collapse
         collapseModal();
       }
     });
@@ -168,11 +156,6 @@ const SearchModal = ({
     };
   });
 
-  const handleSearchChange = (text: string) => {
-    setSearchText(text);
-    onSearchChange?.(text);
-  };
-  
   const handleInputFocus = () => {
     "worklet";
     if (!isExpanded.value) {
@@ -180,13 +163,9 @@ const SearchModal = ({
     }
   };
 
-  const handleSchedulePress = () => {
-    onSchedulePress?.();
-  };
-
   const clearSearch = () => {
     setSearchText("");
-    onSearchChange?.("");
+    handleSearchChange("");
     inputRef.current?.focus();
   };
 
@@ -237,18 +216,34 @@ const SearchModal = ({
                 </TouchableOpacity>
               )}
             </View>
-
-            <TouchableOpacity
-              style={styles.button}
-              onPress={handleSchedulePress}
-            >
-              <Calendar size={24} color={colors.primary} />
-              <Text style={styles.buttonText}>schedule</Text>
-            </TouchableOpacity>
           </View>
 
-          {/* Additional content when expanded */}
-          <Animated.View style={[styles.expandedContent]}></Animated.View>
+          <Animated.View style={[styles.expandedContent]}>
+            {isSearching ? (
+              <View style={styles.loadingContainer}>
+                <Text>Searching...</Text>
+              </View>
+            ) : searchResults.length > 0 ? (
+              <View style={styles.resultsContainer}>
+                {searchResults.map((result) => (
+                  <TouchableOpacity
+                    key={result.id}
+                    style={styles.resultItem}
+                    onPress={() => onResultPress?.(result)}
+                  >
+                    <Text style={styles.resultTitle}>{result.name}</Text>
+                    {result.address && (
+                      <Text style={styles.resultAddress}>{result.address}</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : searchText.length > 2 ? (
+              <View style={styles.noResults}>
+                <Text>No results found</Text>
+              </View>
+            ) : null}
+          </Animated.View>
         </View>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -349,6 +344,36 @@ const styles = StyleSheet.create({
   },
   expandedContent: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  resultsContainer: {
+    flex: 1,
+  },
+  resultItem: {
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  resultTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  resultAddress: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 4,
+  },
+  noResults: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
   },
 });
 
