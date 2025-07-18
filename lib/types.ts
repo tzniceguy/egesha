@@ -26,7 +26,7 @@ export interface ParkingLots {
   address: string;
   latitude: string;
   longitude: string;
-  availableSpotsCount: number;
+  available_spots_count: number;
   openingHours: string;
   closingHours: string;
 }

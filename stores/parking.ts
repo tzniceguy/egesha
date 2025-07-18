@@ -10,6 +10,7 @@ interface ParkingState {
   fetchNearbyLots: (lat: number, lon: number, radius?: number) => Promise<void>;
   selectLot: (lot: ParkingLots | null) => void;
   fetchAvailableSpots: (lotId: number) => Promise<void>;
+  setSearchResults: (results: ParkingLots[]) => void;
 }
 
 export const useParkingStore = create<ParkingState>((set) => ({
@@ -44,5 +45,8 @@ export const useParkingStore = create<ParkingState>((set) => ({
       console.error("Failed to fetch available spots:", error);
       set({ isLoading: false });
     }
+  },
+  setSearchResults: (results) => {
+    set({ nearbyLots: results });
   },
 }));
