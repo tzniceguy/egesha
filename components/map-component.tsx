@@ -6,11 +6,7 @@ import React, {
   forwardRef,
   useCallback,
 } from "react";
-import MapView, {
-  Marker,
-  PROVIDER_GOOGLE,
-  Region,
-} from "react-native-maps";
+import MapView, { Marker, PROVIDER_GOOGLE, Region } from "react-native-maps";
 import {
   StyleSheet,
   View,
@@ -24,6 +20,7 @@ import { MapViewRoute } from "react-native-maps-routes";
 import { GOOGLE_MAPS_API_KEY } from "@/lib/config";
 import { LocateFixed } from "lucide-react-native";
 import colors from "@/lib/styles/colors";
+import ParkingMarker from "./parking-marker";
 
 type LocationType = {
   latitude: number;
@@ -38,6 +35,7 @@ interface MapComponentProps {
   parkingLots?: ParkingLots[];
   destination?: LocationType | null;
   showRoute?: boolean;
+  selectedLotId?: number;
   routeColor?: string;
   routeWidth?: number;
   onMarkerPress?: (lot: ParkingLots) => void;
@@ -50,7 +48,7 @@ export interface MapComponentRef {
 }
 
 const DEFAULT_REGION: Region = {
-  latitude: -6.8235,
+  latitude: 6.8235,
   longitude: 39.2695,
   latitudeDelta: 0.0922,
   longitudeDelta: 0.0421,
@@ -67,6 +65,7 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
       destination = null,
       showRoute = true,
       routeColor = "#1a73e8",
+      selectedLotId,
       routeWidth = 4,
       onMarkerPress,
     },
@@ -105,7 +104,6 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
 
         let location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
-          timeout: 10000,
         });
 
         const fetchedLocation: LocationType = {
@@ -125,7 +123,6 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
           mapRef.current.animateToRegion(userRegion, 1000);
         }
       } catch (error) {
-        console.error("Location error:", error);
         Alert.alert("Location Error", "Could not fetch your current location.");
         onLocationUpdate(null);
         setUserLocation(null);
@@ -166,13 +163,17 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
             <Marker
               key={lot.id}
               coordinate={{
-                latitude: parseFloat(lot.latitude),
-                longitude: parseFloat(lot.longitude),
+                latitude: Number(lot.latitude),
+                longitude: Number(lot.longitude),
               }}
-              title={lot.name}
-              description={`${lot.available_spots_count} spots available`}
+              anchor={{ x: 0.5, y: 0.5 }}
               onPress={() => onMarkerPress?.(lot)}
-            />
+            >
+              <ParkingMarker
+                available={lot.available_spots_count}
+                selected={lot.id === selectedLotId}
+              />
+            </Marker>
           ))}
 
           {destination && (
@@ -193,7 +194,10 @@ const MapComponent = forwardRef<MapComponentRef, MapComponentProps>(
             />
           )}
         </MapView>
-        <TouchableOpacity style={styles.locationButton} onPress={getUserLocation}>
+        <TouchableOpacity
+          style={styles.locationButton}
+          onPress={getUserLocation}
+        >
           <LocateFixed size={24} color={colors.primary} />
         </TouchableOpacity>
       </View>
@@ -217,6 +221,22 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 50,
     elevation: 4,
+  },
+  userMarker: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.primary + "40", // semi-transparent
+    borderWidth: 2,
+    borderColor: colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  userMarkerInner: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
   },
 });
 
