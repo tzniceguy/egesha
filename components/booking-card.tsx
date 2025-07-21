@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { format, parseISO } from "date-fns";
 import { MapPin, Calendar, Clock } from "lucide-react-native";
+import { useRouter } from "expo-router";
 
 // Types
 type BookingStatus =
@@ -24,13 +25,15 @@ interface BookingCardProps {
     date: string;
     status: BookingStatus;
     location: string;
-    price: number;
+    cost: number;
+    start_time: string;
+    end_time: string;
     imageUrl?: string;
   };
-  onPress?: () => void;
 }
 
-const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
+const BookingCard: React.FC<BookingCardProps> = ({ booking }) => {
+  const router = useRouter();
   const scaleAnim = new Animated.Value(1);
 
   const handlePressIn = () => {
@@ -45,6 +48,10 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
       toValue: 1,
       useNativeDriver: true,
     }).start();
+  };
+
+  const handlePress = () => {
+    router.push(`/bookings/${booking.id}`);
   };
 
   const getStatusColor = (status: BookingStatus): string => {
@@ -64,7 +71,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
 
   return (
     <TouchableOpacity
-      onPress={onPress}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={0.9}

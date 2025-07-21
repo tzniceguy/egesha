@@ -10,3 +10,8 @@ export const getBookings = async (): Promise<Booking[]> => {
   const response = await apiClient.get("parking/bookings/");
   return response.data;
 };
+
+export const getBookingById = async (id: string): Promise<Booking> => {
+  const response = await apiClient.get(`parking/bookings/${id}/`);
+  return response.data;
+};
