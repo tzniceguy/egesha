@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,15 @@ import {
   StatusBar,
   ActivityIndicator,
   TouchableOpacity,
+  Linking,
   ScrollView,
+  Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { getBookingById } from "@/services/booking";
+import MapView, { Marker } from "react-native-maps";
+import { MapViewRoute } from "react-native-maps-routes";
 import { format, parseISO } from "date-fns";
 import {
   MapPin,
@@ -20,12 +24,43 @@ import {
   Car,
   Hash,
   DollarSign,
+  Navigation,
   AlertCircle,
 } from "lucide-react-native";
+import * as Location from "expo-location";
 
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
+  const [currentLocation, setCurrentLocation] =
+    useState<Location.LocationObject | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(true);
+  const GOOGLE_MAPS_APIKEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setLocationError("Location permission denied");
+          setIsLocationLoading(false);
+          return;
+        }
+
+        const location = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+        setCurrentLocation(location);
+        setLocationError(null);
+      } catch (error) {
+        setLocationError("Failed to get current location");
+        console.error("Location error:", error);
+      } finally {
+        setIsLocationLoading(false);
+      }
+    })();
+  }, []);
 
   const {
     data: booking,
@@ -37,7 +72,7 @@ export default function BookingDetailScreen() {
     enabled: !!id,
   });
 
-  if (isLoading) {
+  if (isLoading || isLocationLoading) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -49,7 +84,7 @@ export default function BookingDetailScreen() {
     return (
       <View style={styles.centered}>
         <AlertCircle size={24} color="#ef4444" style={styles.errorIcon} />
-        <Text style={styles.errorText}>Failed to load booking details</Text>
+        <Text style={styles.errorText}>Failed to load booking details.</Text>
         <TouchableOpacity style={styles.button} onPress={() => router.back()}>
           <Text style={styles.buttonText}>Go Back</Text>
         </TouchableOpacity>
@@ -57,9 +92,42 @@ export default function BookingDetailScreen() {
     );
   }
 
-  // Extract data from the booking object
+  if (locationError) {
+    return (
+      <View style={styles.centered}>
+        <AlertCircle size={24} color="#ef4444" style={styles.errorIcon} />
+        <Text style={styles.errorText}>{locationError}</Text>
+        <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const { parking_lot, parking_spot, vehicle, start_time, end_time, cost } =
     booking;
+
+  const origin = currentLocation
+    ? {
+        latitude: currentLocation.coords.latitude,
+        longitude: currentLocation.coords.longitude,
+      }
+    : null;
+
+  const destination = {
+    latitude: parseFloat(parking_lot.latitude),
+    longitude: parseFloat(parking_lot.longitude),
+  };
+
+  const openInMaps = () => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&travelmode=driving`;
+    Linking.openURL(url).catch(() => {
+      Alert.alert(
+        "Error",
+        "Could not open navigation app. Please install Google Maps."
+      );
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -101,7 +169,51 @@ export default function BookingDetailScreen() {
             <Text style={styles.infoText}>Tsh {cost}</Text>
           </View>
         </View>
+
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: destination.latitude,
+              longitude: destination.longitude,
+              latitudeDelta: 0.0922,
+              longitudeDelta: 0.0421,
+            }}
+          >
+            {origin && GOOGLE_MAPS_APIKEY && (
+              <MapViewRoute
+                origin={origin}
+                destination={destination}
+                apiKey={GOOGLE_MAPS_APIKEY}
+                strokeWidth={4}
+                strokeColor="#3b82f6"
+              />
+            )}
+            <Marker
+              coordinate={destination}
+              title={parking_lot.name}
+              pinColor="#ef4444"
+            />
+            {origin && (
+              <Marker
+                coordinate={origin}
+                title="Your Location"
+                pinColor="#10b981"
+              />
+            )}
+          </MapView>
+        </View>
       </ScrollView>
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.navigateButton}
+          onPress={openInMaps}
+          disabled={!origin}
+        >
+          <Navigation size={20} color="#ffffff" />
+          <Text style={styles.navigateButtonText}>Start Navigation</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 }
@@ -113,8 +225,6 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: "center",
-    alignItems: "center",
     padding: 20,
   },
   centered: {
@@ -122,10 +232,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  errorIcon: {
+    marginBottom: 16,
+  },
   errorText: {
     fontSize: 16,
     color: "#ef4444",
     marginBottom: 16,
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#3b82f6",
@@ -151,6 +265,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    marginBottom: 20,
   },
   title: {
     fontSize: 24,
@@ -178,5 +293,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#111827",
     marginBottom: 16,
+  },
+  mapContainer: {
+    height: 300,
+    width: "100%",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  footer: {
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    backgroundColor: "#ffffff",
+  },
+  navigateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3b82f6",
+    paddingVertical: 16,
+    borderRadius: 8,
+  },
+  navigateButtonText: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "600",
+    marginLeft: 10,
   },
 });
