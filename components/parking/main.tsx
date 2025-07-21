@@ -1,17 +1,20 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   ScrollView,
   Alert,
   SafeAreaView,
   StatusBar,
+  View,
+  Text,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useParkingStore } from "@/stores/parking";
+import { useQuery } from "@tanstack/react-query";
 import { useBookingStore } from "@/stores/booking";
+import { usePaymentStore } from "@/stores/payment";
 import { useAuthStore } from "@/stores/auth";
-import { getParkingLot } from "@/services/parking";
-import { ParkingLot, ParkingSpot } from "@/lib/types";
+import { getParkingLot, getAvailableSpots } from "@/services/parking";
+import { ParkingSpot } from "@/lib/types";
 import HeaderCard from "./header-card";
 import MapPlaceholder from "./map-placeholder";
 import ParkingSpots from "./parking-spots";
@@ -23,39 +26,33 @@ export default function Main() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuthStore();
-  const {
-    selectedLot,
-    availableSpots,
-    isLoading,
-    selectLot,
-    fetchAvailableSpots,
-  } = useParkingStore();
   const { createBooking, isLoading: isBookingLoading } = useBookingStore();
+  const { initiatePayment, isLoading: isPaymentLoading } = usePaymentStore();
 
-  const [parkingLotData, setParkingLotData] = useState<ParkingLot | null>(null);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpot | null>(null);
   const [bookingModalVisible, setBookingModalVisible] = useState(false);
-  const [duration, setDuration] = useState("1");
   const [vehicle, setVehicle] = useState("");
   const [phone, setPhone] = useState(user?.phoneNumber || "");
 
-  useEffect(() => {
-    const fetchParkingLot = async () => {
-      try {
-        const lot = await getParkingLot(Number(id));
-        setParkingLotData(lot);
-        selectLot(lot);
-        fetchAvailableSpots(Number(id));
-      } catch (error) {
-        console.error("Failed to fetch parking lot:", error);
-        Alert.alert("Error", "Failed to load parking lot details.");
-      }
-    };
+  const {
+    data: parkingLotData,
+    isLoading: isLotLoading,
+    isError: isLotError,
+  } = useQuery({
+    queryKey: ["parkingLot", id],
+    queryFn: () => getParkingLot(Number(id)),
+    enabled: !!id,
+  });
 
-    if (id) {
-      fetchParkingLot();
-    }
-  }, [id]);
+  const {
+    data: availableSpots,
+    isLoading: areSpotsLoading,
+    isError: areSpotsError,
+  } = useQuery({
+    queryKey: ["availableSpots", id],
+    queryFn: () => getAvailableSpots(Number(id)),
+    enabled: !!id,
+  });
 
   const handleSpotSelect = (spot: ParkingSpot) => {
     setSelectedSpot(spot);
@@ -67,25 +64,28 @@ export default function Main() {
     }
   };
 
-  const confirmBooking = async () => {
+  const confirmBooking = async (startTime: Date, endTime: Date) => {
     if (!vehicle || !phone || !selectedSpot || !parkingLotData) {
       Alert.alert("Error", "Please fill in all required fields");
       return;
     }
 
     const bookingData = {
+      license_plate: vehicle,
+      phone_number: phone,
       parking_lot: parkingLotData.id,
       parking_spot: selectedSpot.id,
-      start_time: new Date().toISOString(),
-      end_time: new Date(
-        new Date().getTime() + parseInt(duration) * 60 * 60 * 1000,
-      ).toISOString(),
-      vehicle_license_plate: vehicle,
-      phone_number: phone,
+      start_time: startTime.toISOString(),
+      end_time: endTime.toISOString(),
     };
 
     try {
-      await createBooking(bookingData);
+      const booking = await createBooking(bookingData);
+      const paymentData = {
+        booking_id: booking.id,
+        phone_number: phone,
+      };
+      await initiatePayment(paymentData);
       Alert.alert(
         "Booking Confirmed",
         `Your parking spot ${selectedSpot.spot_number} has been booked successfully!`,
@@ -96,7 +96,6 @@ export default function Main() {
               setBookingModalVisible(false);
               setSelectedSpot(null);
               setVehicle("");
-              setDuration("1");
               router.push("/bookings");
             },
           },
@@ -107,12 +106,16 @@ export default function Main() {
     }
   };
 
-  const calculatedPrice = selectedSpot
-    ? selectedSpot.hourly_rate * parseInt(duration)
-    : 0;
-
-  if (isLoading || !parkingLotData) {
+  if (isLotLoading || areSpotsLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (isLotError || areSpotsError) {
+    return (
+      <View style={styles.container}>
+        <Text>Error loading parking information.</Text>
+      </View>
+    );
   }
 
   return (
@@ -129,28 +132,29 @@ export default function Main() {
           longitude={parkingLotData.longitude}
         />
         <ParkingSpots
-          availableSpots={availableSpots}
+          availableSpots={availableSpots || []}
           selectedSpot={selectedSpot}
           handleSpotSelect={handleSpotSelect}
           handleBooking={handleBooking}
         />
       </ScrollView>
 
-      <BookingModal
-        bookingModalVisible={bookingModalVisible}
-        setBookingModalVisible={setBookingModalVisible}
-        selectedSpot={selectedSpot}
-        parkingLotData={parkingLotData}
-        duration={duration}
-        setDuration={setDuration}
-        vehicle={vehicle}
-        setVehicle={setVehicle}
-        phone={phone}
-        setPhone={setPhone}
-        calculatedPrice={calculatedPrice}
-        confirmBooking={confirmBooking}
-        isBookingLoading={isBookingLoading}
-      />
+      {parkingLotData && (
+        <BookingModal
+          bookingModalVisible={bookingModalVisible}
+          setBookingModalVisible={setBookingModalVisible}
+          selectedSpot={selectedSpot}
+          parkingLotData={parkingLotData}
+          vehicle={vehicle}
+          setVehicle={setVehicle}
+          phone={phone}
+          setPhone={setPhone}
+          calculatedPrice={0} // This will be calculated inside the modal
+          confirmBooking={confirmBooking}
+          isBookingLoading={isBookingLoading || isPaymentLoading}
+        />
+      )}
     </SafeAreaView>
   );
 }
+

@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Animated,
 } from "react-native";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { MapPin, Calendar, Clock } from "lucide-react-native";
 
 // Types
@@ -21,7 +21,7 @@ type BookingStatus =
 interface BookingCardProps {
   booking: {
     id: string;
-    date: Date;
+    date: string;
     status: BookingStatus;
     location: string;
     price: number;
@@ -95,10 +95,15 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
             <View style={styles.dateContainer}>
               <Calendar size={14} color="#757575" />
               <Text style={styles.date}>
-                {format(booking.date, "MMM dd, yyyy")}
+                {format(parseISO(booking.start_time), "MMM dd, yyyy")}
               </Text>
-              <Clock size={14} color="#757575" style={{ marginLeft: 8 }} />
-              <Text style={styles.date}>{format(booking.date, "HH:mm")}</Text>
+            </View>
+            <View style={styles.timeContainer}>
+              <Clock size={14} color="#757575" />
+              <Text style={styles.time}>
+                {format(parseISO(booking.start_time), "HH:mm")} -{" "}
+                {format(parseISO(booking.end_time), "HH:mm")}
+              </Text>
             </View>
           </View>
         </View>
@@ -115,7 +120,7 @@ const BookingCard: React.FC<BookingCardProps> = ({ booking, onPress }) => {
               {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
             </Text>
           </View>
-          <Text style={styles.price}>Tsh {booking.price.toFixed(2)}</Text>
+          <Text style={styles.price}>Tsh {booking.cost}</Text>
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -178,7 +183,6 @@ const styles = StyleSheet.create({
   dateContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
     gap: 4,
   },
   date: {
@@ -205,6 +209,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: "#171a1f",
+  },
+  timeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  time: {
+    fontSize: 13,
+    color: "#757575",
+    marginLeft: 4,
   },
 });
 

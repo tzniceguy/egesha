@@ -127,11 +127,6 @@ export const styles = StyleSheet.create({
     fontSize: 14,
     color: "#374151",
   },
-  separator: {
-    height: 1,
-    backgroundColor: "#e5e7eb",
-    marginVertical: 16,
-  },
   spotsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -236,22 +231,6 @@ export const styles = StyleSheet.create({
   formContainer: {
     gap: 16,
   },
-  inputGroup: {
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#374151",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#d1d5db",
-    borderRadius: 6,
-    padding: 12,
-    fontSize: 16,
-    color: "#111827",
-  },
   pickerContainer: {
     borderWidth: 1,
     borderColor: "#d1d5db",
@@ -286,30 +265,99 @@ export const styles = StyleSheet.create({
   durationButtonTextSelected: {
     color: "#ffffff",
   },
+  // DateTime Picker styles
+  dateTimeButton: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    minHeight: 48,
+  },
+  dateTimeButtonText: {
+    fontSize: 16,
+    color: '#374151',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+  },
+  durationInfo: {
+    backgroundColor: '#ecfdf5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: '#10b981',
+  },
+  durationText: {
+    fontSize: 14,
+    color: '#047857',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  confirmButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
+  },
+  
+  // Updated existing styles if needed
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    backgroundColor: '#ffffff',
+    color: '#374151',
+  },
+  separator: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 20,
+  },
   totalContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    backgroundColor: '#f9fafb',
+    borderRadius: 8,
+    marginBottom: 20,
   },
   totalLabel: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#374151',
   },
   totalAmount: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#059669',
   },
   confirmButton: {
-    backgroundColor: "#3b82f6",
-    padding: 16,
-    borderRadius: 6,
-    alignItems: "center",
+    backgroundColor: '#3b82f6',
+    paddingVertical: 16,
+    borderRadius: 8,
+    alignItems: 'center',
   },
   confirmButtonText: {
-    color: "#ffffff",
-    fontSize: 16,
-    fontWeight: "600",
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });
