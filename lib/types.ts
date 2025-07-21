@@ -35,15 +35,45 @@ export interface ParkingSpot {
   id: number;
   spot_number: string;
   spot_type: string;
-  hourly_rate: string;
+  hourly_rate: number;
   is_available: boolean;
 }
 
 export interface BookingData {
-  parkingSpot: number;
+  license_plate: string;
+  phone_number: string;
+  parking_lot: number;
+  parking_spot: number;
+  start_time: string;
+  end_time: string;
+}
+
+export interface Booking {
+  id: number;
+  user: number;
+  parking_spot: number;
   vehicle: number;
-  startTime: string;
-  endTime: string;
+  start_time: string;
+  end_time: string;
+  cost: string;
+  status: string;
+  booking_time: string;
+}
+
+export interface PaymentData {
+  booking_id: number;
+  phone_number: string;
+}
+
+export interface Payment {
+  id: string;
+  phone_number: string;
+  booking_id: number;
+  amount: number;
+  transaction_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Vehicle {

@@ -5,7 +5,7 @@ import { Booking, BookingData } from "@/lib/types";
 interface BookingState {
   bookings: Booking[];
   isLoading: boolean;
-  createBooking: (data: BookingData) => Promise<void>;
+  createBooking: (data: BookingData) => Promise<Booking>;
   fetchBookings: () => Promise<void>;
 }
 
@@ -15,8 +15,9 @@ export const useBookingStore = create<BookingState>((set) => ({
   createBooking: async (data) => {
     set({ isLoading: true });
     try {
-      await createBooking(data);
+      const booking = await createBooking(data);
       set({ isLoading: false });
+      return booking;
     } catch (error) {
       console.error("Failed to create booking:", error);
       set({ isLoading: false });
