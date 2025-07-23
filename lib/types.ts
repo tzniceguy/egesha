@@ -48,18 +48,6 @@ export interface BookingData {
   end_time: string;
 }
 
-export interface Booking {
-  id: number;
-  user: number;
-  parking_spot: number;
-  vehicle: number;
-  start_time: string;
-  end_time: string;
-  cost: string;
-  status: string;
-  booking_time: string;
-}
-
 export interface PaymentData {
   booking_id: number;
   phone_number: string;
@@ -78,16 +66,16 @@ export interface Payment {
 
 export interface Vehicle {
   id: number;
-  licensePlate: string;
-  vehicleType: string;
+  license_plate: string;
+  vehicle_type: string;
   make: string;
   model: string;
   color: string;
 }
 
 export interface VehicleData {
-  licensePlate: string;
-  vehicleType: string;
+  license_plate: string;
+  vehicle_type: string;
   make: string;
   model: string;
   color: string;
@@ -102,4 +90,39 @@ export interface User {
   firstName: string;
   lastName: string;
   phoneNumber: string;
+}
+
+export interface Booking {
+  id: number;
+  user: number;
+  parking_lot: ParkingLot;
+  parking_spot: ParkingSpot;
+  vehicle: Vehicle;
+  start_time: string;
+  end_time: string;
+  cost: string;
+  status: string;
+  booking_time: string;
+}
+
+export interface ParkingLot {
+  id: number;
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  operator_name: string;
+  available_spots_count: number;
+  opening_hours: string;
+  closing_hours: string;
+  is_active: boolean;
+  spots: Spot[];
+}
+
+export interface Spot {
+  id: number;
+  spot_number: string;
+  spot_type: string;
+  hourly_rate: string;
+  is_available: boolean;
 }

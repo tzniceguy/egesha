@@ -5,6 +5,27 @@ interface NearbyLotsParams {
   lon: number;
   radius?: number;
 }
+export interface ParkingLot {
+  id: number;
+  name: string;
+  address: string;
+  latitude: string;
+  longitude: string;
+  operator_name: string;
+  available_spots_count: number;
+  opening_hours: string;
+  closing_hours: string;
+  is_active: boolean;
+  spots: Spot[];
+}
+
+export interface Spot {
+  id: number;
+  spot_number: string;
+  spot_type: string;
+  hourly_rate: string;
+  is_available: boolean;
+}
 
 export const getNearbyParkingLots = async (params: NearbyLotsParams) => {
   const response = await apiClient.get("parking/lots/", {
@@ -15,13 +36,13 @@ export const getNearbyParkingLots = async (params: NearbyLotsParams) => {
 
 export const getAvailableSpots = async (lotId: number) => {
   const response = await apiClient.get(
-    `/parking/lots/${lotId}/available-spots/`,
+    `parking/lots/${lotId}/available-spots/`,
   );
   return response.data;
 };
 
-export const getParkingLot = async (lotId: number) => {
-  const response = await apiClient.get(`/parking/lots/${lotId}/`);
+export const getParkingLot = async (lotId: number): Promise<ParkingLot> => {
+  const response = await apiClient.get(`parking/lots/${lotId}/`);
   return response.data;
 };
 
@@ -73,4 +94,9 @@ export const searchParkingLocations = async (
     console.error("Error searching parking locations:", error);
     throw error;
   }
+};
+
+export const getParkingSpot = async (spotId: number) => {
+  const response = await apiClient.get(`parking/lots/${spotId}/`);
+  return response.data;
 };
