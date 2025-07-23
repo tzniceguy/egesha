@@ -89,12 +89,6 @@ const Page = () => {
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <Text style={styles.userName}>
-            {user?.firstName} {user?.lastName}
-          </Text>
-          <Text style={styles.userPhone}>{user?.phoneNumber}</Text>
-        </View>
 
         {/* Menu Section */}
         <View style={styles.menuSection}>
