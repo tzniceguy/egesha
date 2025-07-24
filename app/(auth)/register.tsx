@@ -94,20 +94,22 @@ const RegisterScreen = () => {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.titleContainer}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => router.back()}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="arrow-back" size={24} color="#1a1a1a" />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>Create Account</Text>
+            </View>
+            
+            <Text style={styles.headerSubtitle}>
               Enter your details to get started with ParkEasy
             </Text>
+
           </View>
 
           <View style={styles.formContainer}>
@@ -204,17 +206,37 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
   },
-  header: {
-    paddingTop: 10,
+  headerContainer: {
+    flexDirection: "row",
+    gap: 16,
+    alignItems: "center",
+    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f2f2f2",
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#111",
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#555",
+    marginTop: 8,
+    lineHeight: 22,
   },
   titleContainer: {
     marginBottom: 40,
