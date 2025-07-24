@@ -94,17 +94,19 @@ const RegisterScreen = () => {
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => router.back()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
           <View style={styles.titleContainer}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => {
+                  console.log("going back")
+                  router.back()
+                }}
+              >
+                <Ionicons name="arrow-back" size={24} color="#333" />
+              </TouchableOpacity>
             <Text style={styles.title}>Create Account</Text>
+            </View>
             <Text style={styles.subtitle}>
               Enter your details to get started with ParkEasy
             </Text>
@@ -205,7 +207,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   header: {
-    paddingTop: 10,
+    display: "flex",
+    gap: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingTop: 50,
     paddingBottom: 20,
   },
   backButton: {
