@@ -29,7 +29,7 @@ const AuthScreen = () => {
 
           {/* Title Section */}
           <View style={styles.titleContainer}>
-            <Text style={styles.mainTitle}>Egesha</Text>
+            <Text style={styles.mainTitle}>egesha</Text>
             <Text style={styles.subtitle}>
               Travel, move - let us think about parking
             </Text>

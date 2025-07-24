@@ -238,15 +238,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 22,
   },
-
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   titleContainer: {
     marginBottom: 40,
   },
